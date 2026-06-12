@@ -4,7 +4,7 @@ Local working archive for IronNoob SMF forum code and supporting utilities.
 
 ## Repository layout
 
-- `smf-custom-code/` — local archives of custom SMF plugins, themes, server configuration, AI bot code, and disabled legacy mods.
+- `smf-custom-code/` — local archives of custom SMF plugins, the active Core21 theme, server configuration, and AI bot code.
 
 ## Usage notes
 
