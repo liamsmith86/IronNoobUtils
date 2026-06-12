@@ -1,10 +1,9 @@
 # IronNoob Forum Archive
 
-Local working archive for IronNoob SMF forum code, theme migration evidence, and operational notes.
+Local working archive for IronNoob SMF forum code and supporting utilities.
 
 ## Repository layout
 
-- `ironnoob-theme-migration/` — theme migration notes and hand-picked source snapshots; generated screenshots/HTML captures are ignored for public safety.
 - `smf-custom-code/` — local archives of custom SMF plugins, themes, server configuration, AI bot code, and disabled legacy mods.
 
 ## Usage notes
@@ -17,5 +16,3 @@ Local working archive for IronNoob SMF forum code, theme migration evidence, and
 ## Live site reference
 
 - Site: <https://ironnoob.net>
-- Live host: `ssh everlast`
-- Live webroot: `/home/liamsmit/ironnoob.net`

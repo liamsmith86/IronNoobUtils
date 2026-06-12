@@ -32,3 +32,6 @@ ironnoob-theme-migration/**/*.jpeg
 ironnoob-theme-migration/**/*.webp
 ironnoob-theme-migration/**/screenshots/
 ironnoob-theme-migration/**/html/
+
+# Local migration notes/artifacts are not part of the public code repo.
+ironnoob-theme-migration/
