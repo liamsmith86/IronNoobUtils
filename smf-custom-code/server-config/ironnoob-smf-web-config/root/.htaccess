@@ -8,6 +8,11 @@ Options -Indexes
 
 # Block direct access to sensitive generated/backup files before PrettyURLs rewrites
 RewriteEngine On
+
+# Keep SMF session cookies and generated form tokens on the canonical host.
+RewriteCond %{HTTP_HOST} ^www\.ironnoob\.net$ [NC]
+RewriteRule ^ https://ironnoob.net%{REQUEST_URI} [R=301,L,NE]
+
 # Block direct web access to SMF source files.
 RewriteRule ^Sources/ - [F,L]
 

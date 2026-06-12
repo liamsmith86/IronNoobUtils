@@ -42,6 +42,7 @@ class IronNoobSecurity
 		self::addHook('integrate_pre_load', 'IronNoobSecurity::preLoad');
 		self::addHook('integrate_actions', 'IronNoobSecurity::actions');
 		self::addHook('integrate_load_theme', 'IronNoobSecurity::loadTheme');
+		self::addHook('integrate_exit', 'IronNoobSecurity::finalize');
 		self::addHook('integrate_general_mod_settings', 'IronNoobSecurity::settings');
 		self::addHook('integrate_save_general_mod_settings', 'IronNoobSecurity::saveSettings');
 	}
@@ -54,6 +55,7 @@ class IronNoobSecurity
 		self::removeHook('integrate_pre_load', 'IronNoobSecurity::preLoad');
 		self::removeHook('integrate_actions', 'IronNoobSecurity::actions');
 		self::removeHook('integrate_load_theme', 'IronNoobSecurity::loadTheme');
+		self::removeHook('integrate_exit', 'IronNoobSecurity::finalize');
 		self::removeHook('integrate_general_mod_settings', 'IronNoobSecurity::settings');
 		self::removeHook('integrate_save_general_mod_settings', 'IronNoobSecurity::saveSettings');
 	}
@@ -67,7 +69,10 @@ class IronNoobSecurity
 			return;
 
 		if (self::setting('ironnoob_security_secure_sessions'))
+		{
+			self::discardInvalidIncomingSessionCookie();
 			self::hardenPhpRuntime();
+		}
 
 		if (self::setting('ironnoob_security_headers'))
 			self::sendSecurityHeaders();
@@ -94,9 +99,18 @@ class IronNoobSecurity
 	public static function loadTheme(): void
 	{
 		if (self::enabled())
-			self::allowInitialGuestSessionPersistence();
+			self::stabilizeDatabaseSession();
 
 		self::loadText();
+	}
+
+	/**
+	 * Runs shortly before SMF flushes buffered output.
+	 */
+	public static function finalize(bool $doFooter): void
+	{
+		if (self::enabled())
+			self::sendSensitiveFormCacheHeaders();
 	}
 
 	/**
@@ -181,6 +195,20 @@ class IronNoobSecurity
 		@ini_set('log_errors', '1');
 	}
 
+	private static function discardInvalidIncomingSessionCookie(): void
+	{
+		$sessionName = session_name();
+		if ($sessionName === '' || empty($_COOKIE[$sessionName]) || self::isValidSessionId((string) $_COOKIE[$sessionName]))
+			return;
+
+		unset($_COOKIE[$sessionName], $_REQUEST[$sessionName], $_GET[$sessionName], $_POST[$sessionName]);
+
+		if (!headers_sent())
+		{
+			@setcookie($sessionName, '', self::sessionCookieOptions(time() - 3600));
+		}
+	}
+
 	/**
 	 * SMF's database session handler skips writes when the incoming request has
 	 * no cookies. That is normally harmless, but it breaks first-visit guest
@@ -188,11 +216,13 @@ class IronNoobSecurity
 	 * directly from email: PHP sends the new session cookie to the browser, but
 	 * the token-bearing session row is never saved for the follow-up POST.
 	 *
-	 * Once PHP has accepted/created a session ID, mirror that ID into the current
-	 * request cookie array so SMF will persist the initial token state at request
-	 * shutdown. This does not send any extra cookie; PHP already handles that.
+	 * Bad or stale PHPSESSID cookies can also leave SMF with an invalid session
+	 * ID that will not be written by its database handler. Normalize that early,
+	 * then mirror the active ID into the current request cookie array so SMF will
+	 * persist the token state at request shutdown. PHP still owns the actual
+	 * Set-Cookie header.
 	 */
-	private static function allowInitialGuestSessionPersistence(): void
+	private static function stabilizeDatabaseSession(): void
 	{
 		global $modSettings;
 
@@ -202,10 +232,78 @@ class IronNoobSecurity
 		$sessionName = session_name();
 		$sessionId = session_id();
 
-		if ($sessionName === '' || $sessionId === '' || isset($_COOKIE[$sessionName]))
+		if ($sessionName === '' || $sessionId === '')
+			return;
+
+		$hadSessionCookie = isset($_COOKIE[$sessionName]) || self::rawCookieHeaderContains($sessionName);
+
+		if (!self::isValidSessionId($sessionId))
+		{
+			// session_regenerate_id() needs strict mode relaxed when the active
+			// incoming ID is invalid and not present in the database.
+			$strictMode = ini_get('session.use_strict_mode');
+			@ini_set('session.use_strict_mode', '0');
+			$regenerated = @session_regenerate_id(true);
+			@ini_set('session.use_strict_mode', $strictMode === false ? '1' : (string) $strictMode);
+
+			if (!$regenerated || session_id() === '' || !self::isValidSessionId(session_id()))
+				return;
+
+			$sessionId = session_id();
+		}
+
+		if (isset($_COOKIE[$sessionName]) && $_COOKIE[$sessionName] === $sessionId)
 			return;
 
 		$_COOKIE[$sessionName] = $sessionId;
+
+		if ($hadSessionCookie)
+			self::sendActiveSessionCookie($sessionName, $sessionId);
+	}
+
+	private static function isValidSessionId(string $sessionId): bool
+	{
+		return preg_match('~^[A-Za-z0-9,-]{16,64}$~', $sessionId) === 1;
+	}
+
+	private static function sendActiveSessionCookie(string $sessionName, string $sessionId): void
+	{
+		if (headers_sent())
+			return;
+
+		@setcookie($sessionName, $sessionId, self::sessionCookieOptions(0));
+	}
+
+	private static function sessionCookieOptions(int $expires): array
+	{
+		$params = session_get_cookie_params();
+		$options = array(
+			'expires' => $expires,
+			'path' => !empty($params['path']) ? $params['path'] : '/',
+			'secure' => !empty($params['secure']) || self::isHttps(),
+			'httponly' => true,
+			'samesite' => 'Lax',
+		);
+
+		if (!empty($params['domain']))
+			$options['domain'] = $params['domain'];
+
+		return $options;
+	}
+
+	private static function rawCookieHeaderContains(string $cookieName): bool
+	{
+		if (empty($_SERVER['HTTP_COOKIE']))
+			return false;
+
+		foreach (explode(';', (string) $_SERVER['HTTP_COOKIE']) as $cookie)
+		{
+			$parts = explode('=', trim($cookie), 2);
+			if (count($parts) === 2 && urldecode($parts[0]) === $cookieName)
+				return true;
+		}
+
+		return false;
 	}
 
 	private static function sendSecurityHeaders(): void
@@ -223,6 +321,27 @@ class IronNoobSecurity
 
 		if (self::setting('ironnoob_security_hsts') && self::isHttps())
 			header('Strict-Transport-Security: max-age=31536000');
+	}
+
+	private static function sendSensitiveFormCacheHeaders(): void
+	{
+		if (headers_sent() || !self::isSensitiveFormAction())
+			return;
+
+		header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0', true);
+		header('Pragma: no-cache', true);
+		header('Expires: Mon, 26 Jul 1997 05:00:00 GMT', true);
+	}
+
+	private static function isSensitiveFormAction(): bool
+	{
+		$params = array();
+		if (!empty($_SERVER['QUERY_STRING']))
+			parse_str(str_replace(';', '&', (string) $_SERVER['QUERY_STRING']), $params);
+
+		$action = isset($params['action']) ? (string) $params['action'] : (isset($_REQUEST['action']) ? (string) $_REQUEST['action'] : '');
+
+		return in_array($action, array('login', 'login2', 'reminder', 'signup', 'signup2'), true);
 	}
 
 	private static function isPackageManagerRequest(): bool
