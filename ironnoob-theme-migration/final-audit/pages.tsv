@@ -1,0 +1,9 @@
+home	/
+board_lounge_first	/index.php?board=1.0
+board_lounge_page2	/index.php?board=1.20
+topic_beep_boop	/index.php?topic=2.0
+topic_i_am_new	/index.php?topic=159.0
+topic_i_am_new_bot	/index.php?topic=159.0#bot
+profile_sdcore	/index.php?action=profile;u=173
+login	/index.php?action=login
+search	/index.php?action=search

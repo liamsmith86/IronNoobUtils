@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /$
+Allow: /*board*.html$
+Allow: /*topic*.html$
+Allow: /*.xml
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.gif$
+Sitemap: https://ironnoob.net/sitemap.xml

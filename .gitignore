@@ -1,0 +1,34 @@
+# Local agent/operator instructions are machine-specific and may contain operational details.
+AGENTS.md
+
+# Secrets and local environment files.
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Live SMF config/secrets should never be archived here.
+Settings.php
+**/Settings.php
+
+# Local/editor noise.
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Local archive bundles can duplicate captured HTML and should be regenerated privately if needed.
+*.tar.gz
+*.tgz
+
+# Generated IronNoob theme migration capture/test artifacts.
+ironnoob-theme-migration/**/*.html
+ironnoob-theme-migration/**/*.png
+ironnoob-theme-migration/**/*.jpg
+ironnoob-theme-migration/**/*.jpeg
+ironnoob-theme-migration/**/*.webp
+ironnoob-theme-migration/**/screenshots/
+ironnoob-theme-migration/**/html/

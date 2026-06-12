@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<theme-info xmlns="http://www.simplemachines.org/xml/theme-info" xmlns:smf="http://www.simplemachines.org/">
+	<id>core21</id>
+	<version>2.1</version>
+	<name>IronNoob Core Theme (2.1 Port)</name>
+	<author>IronNoob</author>
+	<website>https://ironnoob.net</website>
+	<description>SMF 2.1-compatible port of the legacy SMF Core theme styling used by IronNoob.</description>
+</theme-info>

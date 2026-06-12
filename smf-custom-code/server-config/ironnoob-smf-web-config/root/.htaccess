@@ -1,0 +1,36 @@
+# Basic restored-site protections
+Options -Indexes
+<FilesMatch "(^Settings(_bak)?\.php$|^error_log$|\.(sql|sql\.gz|tar|tar\.gz|tgz|zip|bak)$|~$)">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</FilesMatch>
+
+# Block direct access to sensitive generated/backup files before PrettyURLs rewrites
+RewriteEngine On
+# Block direct web access to SMF source files.
+RewriteRule ^Sources/ - [F,L]
+
+# Block direct access to non-entry PHP/support areas. SMF includes these via filesystem.
+RewriteRule ^Themes/.*\.php$ - [F,L]
+RewriteRule ^SSI\.php$ - [F,L]
+RewriteRule ^other/ - [F,L]
+RewriteRule ^subscriptions\.php$ - [F,L]
+RewriteRule ^(Packages|cache|attachments)/ - [F,L]
+RewriteRule ^(Settings(_bak)?\.php|error_log)$ - [F,L]
+RewriteRule \.(sql|gz|tgz|tar|zip|bak)$ - [F,L]
+RewriteRule ~$ - [F,L]
+
+
+# Supplemental headers applied by the web server after PHP output.
+<IfModule mod_headers.c>
+  Header always unset X-Powered-By
+  Header always set X-XSS-Protection "0"
+</IfModule>
+
+# php -- BEGIN cPanel-generated handler, do not edit
+# Set the “alt-php85” package as the default “PHP” programming language.
+<IfModule mime_module>
+  AddHandler application/x-httpd-alt-php85 .php .php8 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit
