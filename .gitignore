@@ -35,3 +35,6 @@ ironnoob-theme-migration/**/html/
 
 # Local migration notes/artifacts are not part of the public code repo.
 ironnoob-theme-migration/
+
+# Local operational runbooks.
+ACCOUNT_DECOMMISSIONING.md
